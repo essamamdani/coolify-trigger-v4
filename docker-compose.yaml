@@ -2,7 +2,7 @@ services:
   trigger:
     networks:
       - trigger-net
-    image: 'ghcr.io/triggerdotdev/trigger.dev:main'
+    image: 'ghcr.io/triggerdotdev/trigger.dev:v4.1.2'
     restart: unless-stopped
     depends_on:
       - postgres
