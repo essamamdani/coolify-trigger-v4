@@ -1,6 +1,6 @@
 services:
   trigger:
-    image: 'ghcr.io/triggerdotdev/trigger.dev:main'
+    image: "ghcr.io/triggerdotdev/trigger.dev:main"
     restart: unless-stopped
     depends_on:
       - postgres
@@ -16,44 +16,47 @@ services:
       APP_ORIGIN: ${SERVICE_URL_TRIGGER}
       LOGIN_ORIGIN: ${SERVICE_URL_TRIGGER}
       API_ORIGIN: ${SERVICE_URL_TRIGGER}
-      SESSION_SECRET: '${SERVICE_PASSWORD_SESSION}'
-      MAGIC_LINK_SECRET: '${SERVICE_PASSWORD_MAGIC}'
-      ENCRYPTION_KEY: '${SERVICE_PASSWORD_ENCRYPTION}'
-      MANAGED_WORKER_SECRET: '${SERVICE_PASSWORD_MANAGEDWORKER}'
-      DATABASE_URL: 'postgresql://postgres:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-trigger}?schema=public&sslmode=disable'
-      DIRECT_URL: 'postgresql://postgres:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-trigger}?schema=public&sslmode=disable'
+      SESSION_SECRET: "${SERVICE_PASSWORD_SESSION}"
+      MAGIC_LINK_SECRET: "${SERVICE_PASSWORD_MAGIC}"
+      ENCRYPTION_KEY: "${SERVICE_PASSWORD_ENCRYPTION}"
+      MANAGED_WORKER_SECRET: "${SERVICE_PASSWORD_MANAGEDWORKER}"
+      DATABASE_URL: "postgresql://postgres:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-trigger}?schema=public&sslmode=disable"
+      DIRECT_URL: "postgresql://postgres:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-trigger}?schema=public&sslmode=disable"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_TLS_DISABLED: true
-      ELECTRIC_ORIGIN: 'http://electric:3000'
-      DEV_OTEL_EXPORTER_OTLP_ENDPOINT: '${SERVICE_URL_TRIGGER}/otel'
-      DEPLOY_REGISTRY_HOST: '${SERVICE_FQDN_REGISTRY}'
-      DEPLOY_REGISTRY_NAMESPACE: '${REGISTRY_NAMESPACE:-trigger}'
+      ELECTRIC_ORIGIN: "http://electric:3000"
+      DEV_OTEL_EXPORTER_OTLP_ENDPOINT: "${SERVICE_URL_TRIGGER}/otel"
+      DEPLOY_REGISTRY_HOST: "${SERVICE_FQDN_REGISTRY}"
+      DEPLOY_REGISTRY_NAMESPACE: "${REGISTRY_NAMESPACE:-trigger}"
       DEPLOY_REGISTRY_USERNAME: ${REGISTRY_USERNAME:-trigger}
-      DEPLOY_REGISTRY_PASSWORD: '${REGISTRY_PASSWORD:-very-secure-indeed}'
-      OBJECT_STORE_BASE_URL: 'http://minio:9000'
+      DEPLOY_REGISTRY_PASSWORD: "${REGISTRY_PASSWORD:-very-secure-indeed}"
+      OBJECT_STORE_BASE_URL: "http://minio:9000"
       OBJECT_STORE_ACCESS_KEY_ID: admin
-      OBJECT_STORE_SECRET_ACCESS_KEY: '${SERVICE_PASSWORD_MINIO}'
+      OBJECT_STORE_SECRET_ACCESS_KEY: "${SERVICE_PASSWORD_MINIO}"
       GRACEFUL_SHUTDOWN_TIMEOUT: 1000
       NODE_MAX_OLD_SPACE_SIZE: ${NODE_MAX_OLD_SPACE_SIZE:-1024}
       TRIGGER_BOOTSTRAP_ENABLED: 1
       TRIGGER_BOOTSTRAP_WORKER_GROUP_NAME: bootstrap
       TRIGGER_BOOTSTRAP_WORKER_TOKEN_PATH: /home/node/shared/worker_token
-      CLICKHOUSE_URL: 'http://${CLICKHOUSE_ADMIN_USER:-default}:${SERVICE_PASSWORD_64_CLICKHOUSE}@clickhouse:8123?secure=false'
+      CLICKHOUSE_URL: "http://${CLICKHOUSE_ADMIN_USER:-default}:${SERVICE_PASSWORD_64_CLICKHOUSE}@clickhouse:8123?secure=false"
       CLICKHOUSE_LOG_LEVEL: info
       INTERNAL_OTEL_TRACE_LOGGING_ENABLED: 0
       RUN_REPLICATION_ENABLED: 1
-      RUN_REPLICATION_CLICKHOUSE_URL: 'http://${CLICKHOUSE_ADMIN_USER:-default}:${SERVICE_PASSWORD_64_CLICKHOUSE}@clickhouse:8123'
+      RUN_REPLICATION_CLICKHOUSE_URL: "http://${CLICKHOUSE_ADMIN_USER:-default}:${SERVICE_PASSWORD_64_CLICKHOUSE}@clickhouse:8123"
       RUN_REPLICATION_LOG_LEVEL: info
       APP_LOG_LEVEL: info
       TRIGGER_TELEMETRY_DISABLED: 0
+      EMAIL_TRANSPORT: "${EMAIL_TRANSPORT:-resend}"
+      FROM_EMAIL: "${FROM_EMAIL}"
+      RESEND_API_KEY: "${RESEND_API_KEY}"
     volumes:
-      - 'shared-data:/home/node/shared'
+      - "shared-data:/home/node/shared"
     healthcheck:
       test:
         - CMD
         - node
-        - '-e'
+        - "-e"
         - "require('http').get('http://127.0.0.1:3000/healthcheck',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
       interval: 30s
       timeout: 10s
@@ -66,11 +69,11 @@ services:
       - -c
       - wal_level=logical
     environment:
-      POSTGRES_USER: 'postgres'
-      POSTGRES_PASSWORD: '${SERVICE_PASSWORD_POSTGRES}'
-      POSTGRES_DB: '${POSTGRES_DB:-trigger}'
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "${SERVICE_PASSWORD_POSTGRES}"
+      POSTGRES_DB: "${POSTGRES_DB:-trigger}"
     volumes:
-      - 'postgres-data:/var/lib/postgresql/data'
+      - "postgres-data:/var/lib/postgresql/data"
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 5s
@@ -78,10 +81,10 @@ services:
       retries: 10
       start_period: 10s
   redis:
-    image: 'redis:7'
+    image: "redis:7"
     restart: unless-stopped
     volumes:
-      - 'redis-data:/data'
+      - "redis-data:/data"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -89,14 +92,14 @@ services:
       retries: 5
       start_period: 10s
   electric:
-    image: 'electricsql/electric:1.0.24'
+    image: "electricsql/electric:1.0.24"
     restart: unless-stopped
     depends_on:
       - postgres
     environment:
-      DATABASE_URL: 'postgresql://postgres:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-trigger}?schema=public&sslmode=disable'
-      ELECTRIC_INSECURE: 'true'
-      ELECTRIC_USAGE_REPORTING: 'false'
+      DATABASE_URL: "postgresql://postgres:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-trigger}?schema=public&sslmode=disable"
+      ELECTRIC_INSECURE: "true"
+      ELECTRIC_USAGE_REPORTING: "false"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/v1/health"]
       interval: 10s
@@ -104,28 +107,42 @@ services:
       retries: 5
       start_period: 10s
   clickhouse:
-    image: 'bitnamilegacy/clickhouse:latest'
+    image: "bitnamilegacy/clickhouse:latest"
     restart: unless-stopped
     environment:
       CLICKHOUSE_ADMIN_USER: ${CLICKHOUSE_ADMIN_USER:-default}
-      CLICKHOUSE_ADMIN_PASSWORD: '${SERVICE_PASSWORD_64_CLICKHOUSE}'
+      CLICKHOUSE_ADMIN_PASSWORD: "${SERVICE_PASSWORD_64_CLICKHOUSE}"
     volumes:
-      - 'clickhouse-data:/bitnami/clickhouse'
-      - './clickhouse/override.xml:/bitnami/clickhouse/etc/config.d/override.xml:ro'
+      - "clickhouse-data:/bitnami/clickhouse"
+      - "./clickhouse/override.xml:/bitnami/clickhouse/etc/config.d/override.xml:ro"
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--host", "localhost", "--port", "9000", "--user", "${CLICKHOUSE_ADMIN_USER:-default}", "--password", "${SERVICE_PASSWORD_64_CLICKHOUSE}", "--query", "SELECT 1"]
+      test:
+        [
+          "CMD",
+          "clickhouse-client",
+          "--host",
+          "localhost",
+          "--port",
+          "9000",
+          "--user",
+          "${CLICKHOUSE_ADMIN_USER:-default}",
+          "--password",
+          "${SERVICE_PASSWORD_64_CLICKHOUSE}",
+          "--query",
+          "SELECT 1",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 10s
   registry:
-    image: 'registry:2'
+    image: "registry:2"
     restart: unless-stopped
     volumes:
-      - './registry/auth.htpasswd:/auth/htpasswd:ro'
+      - "./registry/auth.htpasswd:/auth/htpasswd:ro"
     environment:
       REGISTRY_AUTH: htpasswd
-      REGISTRY_AUTH_HTPASSWD_REALM: 'Registry Realm'
+      REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
       REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/"]
@@ -138,11 +155,11 @@ services:
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: admin
-      MINIO_ROOT_PASSWORD: '${SERVICE_PASSWORD_MINIO}'
+      MINIO_ROOT_PASSWORD: "${SERVICE_PASSWORD_MINIO}"
       MINIO_DEFAULT_BUCKETS: packets
-      MINIO_BROWSER: 'on'
+      MINIO_BROWSER: "on"
     volumes:
-      - 'minio-data:/bitnami/minio/data'
+      - "minio-data:/bitnami/minio/data"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 5s
@@ -151,7 +168,7 @@ services:
       start_period: 10s
 
   supervisor:
-    image: 'ghcr.io/triggerdotdev/supervisor:v4-beta'
+    image: "ghcr.io/triggerdotdev/supervisor:v4-beta"
     restart: unless-stopped
     depends_on:
       - docker-proxy
@@ -161,7 +178,7 @@ services:
     environment:
       TRIGGER_API_URL: http://trigger:3000
       OTEL_EXPORTER_OTLP_ENDPOINT: http://trigger:3000/otel
-      TRIGGER_WORKER_TOKEN: 'file:///home/node/shared/worker_token'
+      TRIGGER_WORKER_TOKEN: "file:///home/node/shared/worker_token"
       MANAGED_WORKER_SECRET: ${SERVICE_PASSWORD_MANAGEDWORKER}
       TRIGGER_WORKLOAD_API_DOMAIN: supervisor
       TRIGGER_WORKLOAD_API_PORT_EXTERNAL: 8020
@@ -170,23 +187,29 @@ services:
       DOCKER_AUTOREMOVE_EXITED_CONTAINERS: 1
       DOCKER_REGISTRY_URL: ${SERVICE_URL_REGISTRY}
       DOCKER_REGISTRY_USERNAME: ${REGISTRY_USERNAME:-trigger}
-      DOCKER_REGISTRY_PASSWORD: '${REGISTRY_PASSWORD:-very-secure-indeed}'
+      DOCKER_REGISTRY_PASSWORD: "${REGISTRY_PASSWORD:-very-secure-indeed}"
       DEBUG: 1
       ENFORCE_MACHINE_PRESETS: 1
       TRIGGER_DEQUEUE_INTERVAL_MS: 1000
     volumes:
-      - 'shared-data:/home/node/shared'
+      - "shared-data:/home/node/shared"
     healthcheck:
-      test: ["CMD", "node", "-e", "http.get('http://localhost:8020/health', res => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "http.get('http://localhost:8020/health', res => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 10s
   docker-proxy:
-    image: 'tecnativa/docker-socket-proxy:latest'
+    image: "tecnativa/docker-socket-proxy:latest"
     restart: unless-stopped
     volumes:
-      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
     environment:
       LOG_LEVEL: info
       POST: 1
