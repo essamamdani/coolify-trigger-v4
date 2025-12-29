@@ -64,7 +64,7 @@ services:
   postgres:
     networks:
       - trigger-net
-    image: 'bitnamilegacy/postgresql:16.6.0-debian-12-r2'
+    image: postgres:14
     restart: unless-stopped
     command:
       - -c
