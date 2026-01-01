@@ -135,6 +135,92 @@ The following persistent volumes are used:
 
 All services include health checks to ensure proper startup and monitoring.
 
+## Deployment with External Databases
+
+If you want to use Coolify's native database resources (with built-in backup support), use the `docker-compose.external-dbs.yaml` file instead.
+
+### Why Use External Databases?
+
+- **Native Coolify Backups**: Each database gets automatic backup support via Coolify's S3 integration
+- **Independent Scaling**: Scale databases separately from application services
+- **Better Monitoring**: Individual health monitoring per database in Coolify UI
+- **Easier Upgrades**: Update databases independently without redeploying the entire stack
+
+### Setup Steps
+
+1. **Deploy Databases as Coolify Resources**:
+   - Go to Coolify > Resources > New > Database
+   - Create the following databases:
+     - **PostgreSQL 17** (enable `wal_level=logical` in settings)
+     - **Redis 7**
+     - **ClickHouse**
+   - Create a MinIO service:
+     - Go to Resources > New > Service > search "MinIO"
+
+2. **Get Connection Strings**:
+   After deploying each database, copy their connection URLs from Coolify.
+
+3. **Deploy Application Stack**:
+   - Create new resource from this repo
+   - Select `docker-compose.external-dbs.yaml` as the compose file
+   - Configure the following environment variables:
+
+### Required Environment Variables
+
+```env
+# PostgreSQL (from Coolify PostgreSQL resource)
+DATABASE_URL=postgresql://postgres:PASSWORD@postgres-uuid.internal:5432/trigger?schema=public&sslmode=disable
+DIRECT_URL=postgresql://postgres:PASSWORD@postgres-uuid.internal:5432/trigger?schema=public&sslmode=disable
+
+# Redis (from Coolify Redis resource)
+REDIS_HOST=redis-uuid.internal
+REDIS_PORT=6379
+REDIS_PASSWORD=your-redis-password
+REDIS_TLS_DISABLED=true
+
+# ClickHouse (from Coolify ClickHouse resource)
+CLICKHOUSE_URL=http://default:PASSWORD@clickhouse-uuid.internal:8123
+
+# MinIO (from Coolify MinIO service)
+OBJECT_STORE_BASE_URL=http://minio-uuid.internal:9000
+OBJECT_STORE_ACCESS_KEY_ID=admin
+OBJECT_STORE_SECRET_ACCESS_KEY=your-minio-password
+
+# Application secrets (Coolify auto-generates these)
+SERVICE_PASSWORD_SESSION=...
+SERVICE_PASSWORD_MAGIC=...
+SERVICE_PASSWORD_ENCRYPTION=...
+SERVICE_PASSWORD_MANAGEDWORKER=...
+SERVICE_PASSWORD_REGISTRY=...
+
+# Registry and network settings
+SERVICE_URL_TRIGGER=https://your-trigger-domain.com
+SERVICE_FQDN_REGISTRY=registry.your-domain.com
+SERVICE_URL_REGISTRY=https://registry.your-domain.com
+REGISTRY_USERNAME=trigger
+REGISTRY_PASSWORD=your-secure-password
+DOCKER_RUNNER_NETWORKS=your-coolify-network
+```
+
+### Configuring Backups
+
+Once databases are deployed as Coolify resources:
+
+1. Go to **Settings** > **S3 Storages** in Coolify
+2. Add your S3-compatible storage (AWS S3, MinIO, etc.)
+3. For each database resource, go to **Backups** tab
+4. Configure backup schedule and S3 destination
+
+### Services in External DB Mode
+
+| Service | Description |
+|---------|-------------|
+| trigger | Main Trigger.dev application |
+| electric | ElectricSQL sync service |
+| registry | Docker registry for deployments |
+| supervisor | Worker supervisor |
+| docker-proxy | Docker socket proxy |
+
 ## Local Development
 
 ### Running Locally
