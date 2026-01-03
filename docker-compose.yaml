@@ -238,7 +238,7 @@ services:
           echo "Backups disabled (BACKUP_ENABLED != true). Sleeping indefinitely..."
           tail -f /dev/null
         fi
-        exec /backup.sh
+        exec sh run.sh
     healthcheck:
       test: ["CMD-SHELL", "true"]
       interval: 30s
