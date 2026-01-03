@@ -126,7 +126,7 @@ services:
     environment:
       REGISTRY_AUTH: htpasswd
       REGISTRY_AUTH_HTPASSWD_REALM: 'Registry Realm'
-      REGISTRY_AUTH_HTPASSWD_PATH: /auth/auth.htpasswd
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
       REGISTRY_HTTP_SECRET: '${SERVICE_PASSWORD_REGISTRY}'
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/"]

@@ -80,12 +80,12 @@ The default password `very-secure-indeed` is clearly insecure. To update the reg
    ```bash
    docker run \
      --entrypoint htpasswd \
-     httpd:2 -Bbn your-username your-secure-password > registry/auth.htpasswd
+     httpd:2 -Bbn your-username your-secure-password > registry/htpasswd
    ```
 
    On Windows, ensure correct encoding:
    ```powershell
-   docker run --rm --entrypoint htpasswd httpd:2 -Bbn your-username your-secure-password | Set-Content -Encoding ASCII registry/auth.htpasswd
+   docker run --rm --entrypoint htpasswd httpd:2 -Bbn your-username your-secure-password | Set-Content -Encoding ASCII registry/htpasswd
    ```
 
    Replace `your-username` and `your-secure-password` with your desired credentials.
