@@ -122,7 +122,7 @@ services:
     image: 'registry:2'
     restart: unless-stopped
     volumes:
-      - './registry:/auth:ro'
+      - './registry:/auth'
     environment:
       REGISTRY_AUTH: htpasswd
       REGISTRY_AUTH_HTPASSWD_REALM: 'Registry Realm'
