@@ -135,6 +135,96 @@ The following persistent volumes are used:
 
 All services include health checks to ensure proper startup and monitoring.
 
+## Automatic Backups (Optional)
+
+The setup includes optional backup services for PostgreSQL and Redis that can upload to any S3-compatible storage (AWS S3, MinIO, Backblaze B2, etc.).
+
+### Enabling Backups
+
+Backup services use Docker Compose profiles and are disabled by default. To enable them:
+
+```bash
+# Start all services including backups
+docker compose --profile backup up -d
+
+# Or with Coolify, add to your docker-compose command
+docker compose --profile backup up -d
+```
+
+### Required Environment Variables
+
+When backups are enabled, you must configure these S3 settings:
+
+```env
+# S3 Configuration (Required for backups)
+BACKUP_S3_ENDPOINT=https://s3.amazonaws.com      # S3-compatible endpoint URL
+BACKUP_S3_BUCKET=my-backups                       # Bucket name
+BACKUP_S3_ACCESS_KEY_ID=your-access-key          # S3 access key
+BACKUP_S3_SECRET_ACCESS_KEY=your-secret-key      # S3 secret key
+BACKUP_S3_REGION=us-east-1                        # S3 region (default: us-east-1)
+```
+
+### Backup Path Structure
+
+Backups are automatically organized by your `DOCKER_RUNNER_NETWORKS` value:
+
+```
+s3://{BACKUP_S3_BUCKET}/{DOCKER_RUNNER_NETWORKS}/postgres/
+s3://{BACKUP_S3_BUCKET}/{DOCKER_RUNNER_NETWORKS}/redis/
+```
+
+Example: If `DOCKER_RUNNER_NETWORKS=my-coolify-network`, backups appear at:
+- `s3://my-backups/my-coolify-network/postgres/`
+- `s3://my-backups/my-coolify-network/redis/`
+
+### Optional Configuration
+
+```env
+# PostgreSQL Backup Settings
+BACKUP_POSTGRES_SCHEDULE=0 2 * * *               # Cron schedule (default: daily at 2:00 AM)
+BACKUP_POSTGRES_KEEP_DAYS=60                      # Retention in days (default: 60)
+
+# Redis Backup Settings
+BACKUP_REDIS_SCHEDULE=0 3 * * *                  # Cron schedule (default: daily at 3:00 AM)
+BACKUP_REDIS_KEEP_DAYS=60                         # Retention in days (default: 60)
+```
+
+### Backup Schedule Format
+
+The schedule uses standard cron format: `minute hour day month weekday`
+
+Examples:
+- `0 2 * * *` - Daily at 2:00 AM
+- `0 */6 * * *` - Every 6 hours
+- `0 2 * * 0` - Weekly on Sunday at 2:00 AM
+- `0 2 1 * *` - Monthly on the 1st at 2:00 AM
+
+### Using with MinIO (Local S3)
+
+You can use the included MinIO service as your backup destination:
+
+```env
+BACKUP_S3_ENDPOINT=http://minio:9000
+BACKUP_S3_BUCKET=backups
+BACKUP_S3_ACCESS_KEY_ID=admin
+BACKUP_S3_SECRET_ACCESS_KEY=${SERVICE_PASSWORD_MINIO}
+BACKUP_S3_REGION=us-east-1
+```
+
+Note: You'll need to create the `backups` bucket in MinIO first.
+
+### Manual Backup
+
+To trigger an immediate backup:
+
+```bash
+# PostgreSQL
+docker compose exec postgres-backup /bin/sh -c '/backup.sh'
+
+# Redis
+docker compose exec redis-backup /backup.sh
+```
+
 ## Deployment with External Databases
 
 If you want to use Coolify's native database resources (with built-in backup support), use the `docker-compose.external-dbs.yaml` file instead.
