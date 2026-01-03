@@ -65,6 +65,8 @@ services:
     command:
       - -c
       - wal_level=logical
+      - -c
+      - max_connections=200
     environment:
       POSTGRES_USER: 'postgres'
       POSTGRES_PASSWORD: '${SERVICE_PASSWORD_POSTGRES}'
