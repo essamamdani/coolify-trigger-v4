@@ -14,6 +14,8 @@ services:
     environment:
       DEFAULT_ENV_EXECUTION_CONCURRENCY_LIMIT: 1000
       DEFAULT_ORG_EXECUTION_CONCURRENCY_LIMIT: 3000
+      MAXIMUM_DEV_QUEUE_SIZE: 30000
+      MAXIMUM_DEPLOYED_QUEUE_SIZE: 150000
       REMIX_APP_PORT: 3000
       APP_ORIGIN: ${SERVICE_URL_TRIGGER}
       LOGIN_ORIGIN: ${SERVICE_URL_TRIGGER}
@@ -37,7 +39,7 @@ services:
       OBJECT_STORE_ACCESS_KEY_ID: admin
       OBJECT_STORE_SECRET_ACCESS_KEY: '${SERVICE_PASSWORD_MINIO}'
       GRACEFUL_SHUTDOWN_TIMEOUT: 1000
-      NODE_MAX_OLD_SPACE_SIZE: ${NODE_MAX_OLD_SPACE_SIZE:-1024}
+      NODE_MAX_OLD_SPACE_SIZE: ${NODE_MAX_OLD_SPACE_SIZE:-4096}
       TRIGGER_BOOTSTRAP_ENABLED: 1
       TRIGGER_BOOTSTRAP_WORKER_GROUP_NAME: bootstrap
       TRIGGER_BOOTSTRAP_WORKER_TOKEN_PATH: /home/node/shared/worker_token
@@ -68,7 +70,17 @@ services:
       - -c
       - wal_level=logical
       - -c
-      - max_connections=200
+      - max_connections=1000
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - effective_cache_size=2GB
+      - -c
+      - work_mem=32MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - checkpoint_completion_target=0.9
     environment:
       POSTGRES_USER: 'postgres'
       POSTGRES_PASSWORD: '${SERVICE_PASSWORD_POSTGRES}'
@@ -84,6 +96,7 @@ services:
   redis:
     image: 'redis:7'
     restart: unless-stopped
+    command: redis-server --maxmemory 4gb --maxmemory-policy noeviction --appendonly yes --tcp-keepalive 300
     volumes:
       - 'redis-data:/data'
     healthcheck:
@@ -178,7 +191,7 @@ services:
       DOCKER_REGISTRY_PASSWORD: '${REGISTRY_PASSWORD:-very-secure-indeed}'
       DEBUG: 1
       ENFORCE_MACHINE_PRESETS: 1
-      TRIGGER_DEQUEUE_INTERVAL_MS: 1000
+      TRIGGER_DEQUEUE_INTERVAL_MS: 500
     volumes:
       - 'shared-data:/home/node/shared'
     healthcheck:
