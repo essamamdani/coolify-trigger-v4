@@ -12,8 +12,12 @@ services:
     user: root
     command: "sh -c \"chown -R node:node /home/node/shared && exec ./scripts/entrypoint.sh\"\n"
     environment:
+      RUN_ENGINE_TASKS_PER_WORKER: 50
+      RUN_ENGINE_WORKER_COUNT: 16
+      DATABASE_CONNECTION_LIMIT: 200
       DEFAULT_ENV_EXECUTION_CONCURRENCY_LIMIT: 1000
       DEFAULT_ORG_EXECUTION_CONCURRENCY_LIMIT: 3000
+      WORKER_CONCURRENCY: 50
       MAXIMUM_DEV_QUEUE_SIZE: 30000
       MAXIMUM_DEPLOYED_QUEUE_SIZE: 150000
       REMIX_APP_PORT: 3000
@@ -39,7 +43,7 @@ services:
       OBJECT_STORE_ACCESS_KEY_ID: admin
       OBJECT_STORE_SECRET_ACCESS_KEY: '${SERVICE_PASSWORD_MINIO}'
       GRACEFUL_SHUTDOWN_TIMEOUT: 1000
-      NODE_MAX_OLD_SPACE_SIZE: ${NODE_MAX_OLD_SPACE_SIZE:-4096}
+      NODE_MAX_OLD_SPACE_SIZE: ${NODE_MAX_OLD_SPACE_SIZE:-8192}
       TRIGGER_BOOTSTRAP_ENABLED: 1
       TRIGGER_BOOTSTRAP_WORKER_GROUP_NAME: bootstrap
       TRIGGER_BOOTSTRAP_WORKER_TOKEN_PATH: /home/node/shared/worker_token
@@ -177,6 +181,9 @@ services:
     user: root
     command: "sh -c \"chown -R node:node /home/node/shared && exec /usr/bin/dumb-init -- pnpm run --filter supervisor start\"\n"
     environment:
+      DOCKER_ENFORCE_MACHINE_PRESETS: false
+      TRIGGER_DEQUEUE_MAX_CONSUMER_COUNT: 10
+      TRIGGER_DEQUEUE_MAX_RUN_COUNT: 100
       TRIGGER_API_URL: http://trigger:3000
       OTEL_EXPORTER_OTLP_ENDPOINT: http://trigger:3000/otel
       TRIGGER_WORKER_TOKEN: 'file:///home/node/shared/worker_token'
