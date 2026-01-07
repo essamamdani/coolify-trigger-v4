@@ -15,6 +15,24 @@ This repository contains a Docker Compose configuration for self-hosting Trigger
    - Registry: `:5000` (use Coolify generated URL or custom domain)
 6. **Deploy** the application
 
+### Post-Deployment Configuration
+
+After the first deployment, you need to configure **three critical settings** for the setup to work properly:
+
+#### 1. Network Configuration (Required)
+1. **Find Network Name**: After deployment, in your Coolify project:
+   - Go to your project dashboard
+   - Look for the **services** section showing your containers
+   - You'll see a network ID like `xc324534265fdsfsfdfgfd4` in the services list
+   - **Copy this network ID** (it's the long alphanumeric string)
+
+2. **Add Environment Variable**: In Coolify, go to your project → Environment Variables → Add:
+   ```
+   DOCKER_RUNNER_NETWORKS=xc324534265fdsfsfdfgfd4
+   ```
+   (Replace with your actual network ID)
+
 ## Support
 
 For issues specific to Trigger.dev, visit the [Trigger.dev documentation](https://trigger.dev/docs) or [GitHub repository](https://github.com/triggerdotdev/trigger.dev).
+
