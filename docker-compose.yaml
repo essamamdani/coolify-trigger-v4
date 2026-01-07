@@ -22,10 +22,6 @@ services:
   trigger:
     image: 'ghcr.io/triggerdotdev/trigger.dev:main'
     restart: unless-stopped
-    labels:
-      # Hacky solution for dashboard to work - add DOCKER_RUNNER_NETWORKS netowrk name as hardcoded
-      # Thanks to https://github.com/coollabsio/coolify/discussions/2439#discussioncomment-10950035  
-      - "traefik.docker.network=qg0so04w8o8ko4g0sggcs0k8"
     depends_on:
       - postgres
       - redis
@@ -233,7 +229,7 @@ services:
       TRIGGER_WORKLOAD_API_DOMAIN: supervisor
       TRIGGER_WORKLOAD_API_PORT_EXTERNAL: 8020
       DOCKER_HOST: tcp://docker-proxy:2375
-      DOCKER_RUNNER_NETWORKS: "qg0so04w8o8ko4g0sggcs0k8"
+      DOCKER_RUNNER_NETWORKS: ${DOCKER_RUNNER_NETWORKS}
       DOCKER_AUTOREMOVE_EXITED_CONTAINERS: 1
       DOCKER_REGISTRY_URL: ${SERVICE_URL_REGISTRY}
       DOCKER_REGISTRY_USERNAME: ${REGISTRY_USERNAME:-trigger}
