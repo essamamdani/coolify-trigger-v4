@@ -1,6 +1,24 @@
 # Trigger.dev Self-Hosted Setup
 
-This repository contains a Docker Compose configuration for self-hosting Trigger.dev, a powerful workflow automation platform. The setup includes all necessary services: web application, PostgreSQL database, Redis, ElectricSQL, ClickHouse, Docker registry, MinIO object storage, and supervisor components.
+This repository contains Docker Compose configurations for self-hosting Trigger.dev, a powerful workflow automation platform. The setup includes all necessary services: web application, PostgreSQL database, Redis, ElectricSQL, ClickHouse, Docker registry, MinIO object storage, and supervisor components.
+
+## Deployment Options
+
+| Option | Use Case | Location |
+|--------|----------|----------|
+| **Single Server** | Small to medium workloads, simple setup | `docker-compose.yaml` (root) |
+| **Distributed Workers** | High concurrency (1000+), horizontal scaling | [`distributed/`](./distributed/) folder |
+| **External Databases** | Use Coolify's managed databases | `docker-compose.external-dbs.yaml` |
+
+### Need High Concurrency?
+
+For workloads requiring 1000+ concurrent tasks, use the **distributed setup** in the [`distributed/`](./distributed/) folder. This allows you to:
+
+- Run workers on multiple servers
+- Scale horizontally as needed
+- Keep all workers managed by a single webapp
+
+See [`distributed/README.md`](./distributed/README.md) for detailed setup instructions.
 
 ## Quick Start with Coolify v4
 

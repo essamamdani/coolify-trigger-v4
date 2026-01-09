@@ -1,0 +1,267 @@
+services:
+  trigger:
+    image: 'ghcr.io/triggerdotdev/trigger.dev:main'
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+      - clickhouse
+      - electric
+      - minio
+      - registry
+    user: root
+    command: |
+      sh -c "chown -R node:node /home/node/shared && exec ./scripts/entrypoint.sh"
+    environment:
+      RUN_ENGINE_TASKS_PER_WORKER: 50
+      RUN_ENGINE_WORKER_COUNT: 20
+      DATABASE_CONNECTION_LIMIT: 200
+      DEFAULT_ENV_EXECUTION_CONCURRENCY_LIMIT: 1000
+      DEFAULT_ORG_EXECUTION_CONCURRENCY_LIMIT: 3000
+      WORKER_CONCURRENCY: 50
+      MAXIMUM_DEV_QUEUE_SIZE: 30000
+      MAXIMUM_DEPLOYED_QUEUE_SIZE: 150000
+      REMIX_APP_PORT: 3000
+      APP_ORIGIN: ${SERVICE_URL_TRIGGER}
+      LOGIN_ORIGIN: ${SERVICE_URL_TRIGGER}
+      API_ORIGIN: ${SERVICE_URL_TRIGGER}
+      SESSION_SECRET: '${SERVICE_PASSWORD_SESSION}'
+      MAGIC_LINK_SECRET: '${SERVICE_PASSWORD_MAGIC}'
+      ENCRYPTION_KEY: '${SERVICE_PASSWORD_ENCRYPTION}'
+      MANAGED_WORKER_SECRET: '${SERVICE_PASSWORD_MANAGEDWORKER}'
+      DATABASE_URL: 'postgresql://postgres:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-trigger}?schema=public&sslmode=disable'
+      DIRECT_URL: 'postgresql://postgres:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-trigger}?schema=public&sslmode=disable'
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_TLS_DISABLED: true
+      ELECTRIC_ORIGIN: 'http://electric:3000'
+      DEV_OTEL_EXPORTER_OTLP_ENDPOINT: '${SERVICE_URL_TRIGGER}/otel'
+      DEPLOY_REGISTRY_HOST: '${SERVICE_FQDN_REGISTRY}'
+      DEPLOY_REGISTRY_NAMESPACE: '${REGISTRY_NAMESPACE:-trigger}'
+      DEPLOY_REGISTRY_USERNAME: ${REGISTRY_USERNAME:-trigger}
+      DEPLOY_REGISTRY_PASSWORD: '${REGISTRY_PASSWORD:-very-secure-indeed}'
+      OBJECT_STORE_BASE_URL: 'http://minio:9000'
+      OBJECT_STORE_ACCESS_KEY_ID: admin
+      OBJECT_STORE_SECRET_ACCESS_KEY: '${SERVICE_PASSWORD_MINIO}'
+      GRACEFUL_SHUTDOWN_TIMEOUT: 30000
+      NODE_MAX_OLD_SPACE_SIZE: ${NODE_MAX_OLD_SPACE_SIZE:-8192}
+      # Bootstrap is ENABLED - workers will get their token from this webapp
+      TRIGGER_BOOTSTRAP_ENABLED: 1
+      TRIGGER_BOOTSTRAP_WORKER_GROUP_NAME: bootstrap
+      TRIGGER_BOOTSTRAP_WORKER_TOKEN_PATH: /home/node/shared/worker_token
+      CLICKHOUSE_URL: 'http://${CLICKHOUSE_ADMIN_USER:-default}:${SERVICE_PASSWORD_64_CLICKHOUSE}@clickhouse:8123?secure=false'
+      CLICKHOUSE_LOG_LEVEL: info
+      INTERNAL_OTEL_TRACE_LOGGING_ENABLED: 0
+      RUN_REPLICATION_ENABLED: 1
+      RUN_REPLICATION_CLICKHOUSE_URL: 'http://${CLICKHOUSE_ADMIN_USER:-default}:${SERVICE_PASSWORD_64_CLICKHOUSE}@clickhouse:8123'
+      RUN_REPLICATION_LOG_LEVEL: info
+      APP_LOG_LEVEL: info
+      TRIGGER_TELEMETRY_DISABLED: 0
+    volumes:
+      - 'shared-data:/home/node/shared'
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - "require('http').get('http://127.0.0.1:3000/healthcheck',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  postgres:
+    image: postgres:14
+    restart: unless-stopped
+    command:
+      - -c
+      - wal_level=logical
+      - -c
+      - max_connections=1000
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - effective_cache_size=2GB
+      - -c
+      - work_mem=32MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - checkpoint_completion_target=0.9
+    environment:
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: '${SERVICE_PASSWORD_POSTGRES}'
+      POSTGRES_DB: '${POSTGRES_DB:-trigger}'
+    volumes:
+      - 'postgres-data:/var/lib/postgresql/data'
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 20s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: 'redis:7'
+    restart: unless-stopped
+    command: redis-server --maxmemory 4gb --maxmemory-policy noeviction --appendonly yes --tcp-keepalive 300
+    volumes:
+      - 'redis-data:/data'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  electric:
+    image: 'electricsql/electric:1.0.24'
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: 'postgresql://postgres:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-trigger}?schema=public&sslmode=disable'
+      ELECTRIC_INSECURE: 'true'
+      ELECTRIC_USAGE_REPORTING: 'false'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  clickhouse:
+    image: 'bitnamilegacy/clickhouse:latest'
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_ADMIN_USER: ${CLICKHOUSE_ADMIN_USER:-default}
+      CLICKHOUSE_ADMIN_PASSWORD: '${SERVICE_PASSWORD_64_CLICKHOUSE}'
+    volumes:
+      - 'clickhouse-data:/bitnami/clickhouse'
+      - '../../clickhouse/override.xml:/bitnami/clickhouse/etc/config.d/override.xml:ro'
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--host", "localhost", "--port", "9000", "--user", "${CLICKHOUSE_ADMIN_USER:-default}", "--password", "${SERVICE_PASSWORD_64_CLICKHOUSE}", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  registry:
+    image: 'registry:2'
+    restart: unless-stopped
+    volumes:
+      - '../../registry:/auth'
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: 'Registry Realm'
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      REGISTRY_HTTP_SECRET: '${SERVICE_PASSWORD_REGISTRY}'
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  minio:
+    image: bitnamilegacy/minio:latest
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: '${SERVICE_PASSWORD_MINIO}'
+      MINIO_DEFAULT_BUCKETS: packets
+      MINIO_BROWSER: 'on'
+    volumes:
+      - 'minio-data:/bitnami/minio/data'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+  # ============================================
+  # BACKUP SERVICES (Optional - set BACKUP_ENABLED=true to enable)
+  # ============================================
+  postgres-backup:
+    image: itbm/postgresql-backup-s3:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      BACKUP_ENABLED: '${BACKUP_ENABLED:-false}'
+      POSTGRES_HOST: postgres
+      POSTGRES_DATABASE: '${POSTGRES_DB:-trigger}'
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: '${SERVICE_PASSWORD_POSTGRES}'
+      S3_ENDPOINT: '${BACKUP_S3_ENDPOINT:-}'
+      S3_BUCKET: '${BACKUP_S3_BUCKET:-}'
+      S3_ACCESS_KEY_ID: '${BACKUP_S3_ACCESS_KEY_ID:-}'
+      S3_SECRET_ACCESS_KEY: '${BACKUP_S3_SECRET_ACCESS_KEY:-}'
+      S3_REGION: '${BACKUP_S3_REGION:-us-east-1}'
+      S3_PREFIX: '${DOCKER_RUNNER_NETWORKS:-trigger-net}/postgres'
+      SCHEDULE: '${BACKUP_POSTGRES_SCHEDULE:-0 2 * * *}'
+      DELETE_OLDER_THAN: '${BACKUP_POSTGRES_KEEP_DAYS:-60} days ago'
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        if [ "$${BACKUP_ENABLED}" != "true" ]; then
+          echo "Backups disabled (BACKUP_ENABLED != true). Sleeping indefinitely..."
+          tail -f /dev/null
+        fi
+        exec sh run.sh
+    healthcheck:
+      test: ["CMD-SHELL", "true"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  redis-backup:
+    image: alpine:3.19
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - 'redis-data:/data:ro'
+      - '../../scripts/redis-backup.sh:/backup.sh:ro'
+    environment:
+      BACKUP_ENABLED: '${BACKUP_ENABLED:-false}'
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      S3_ENDPOINT: '${BACKUP_S3_ENDPOINT:-}'
+      S3_BUCKET: '${BACKUP_S3_BUCKET:-}'
+      S3_ACCESS_KEY_ID: '${BACKUP_S3_ACCESS_KEY_ID:-}'
+      S3_SECRET_ACCESS_KEY: '${BACKUP_S3_SECRET_ACCESS_KEY:-}'
+      S3_REGION: '${BACKUP_S3_REGION:-us-east-1}'
+      S3_PREFIX: '${DOCKER_RUNNER_NETWORKS:-trigger-net}/redis'
+      BACKUP_SCHEDULE: '${BACKUP_REDIS_SCHEDULE:-0 3 * * *}'
+      BACKUP_KEEP_DAYS: '${BACKUP_REDIS_KEEP_DAYS:-60}'
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        if [ "$${BACKUP_ENABLED}" != "true" ]; then
+          echo "Backups disabled (BACKUP_ENABLED != true). Sleeping indefinitely..."
+          tail -f /dev/null
+        fi
+        apk add --no-cache aws-cli redis bash
+        printf '%s /backup.sh\n' "$${BACKUP_SCHEDULE}" > /etc/crontabs/root
+        crond -f -l 2
+    healthcheck:
+      test: ["CMD-SHELL", "true"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  postgres-data:
+  redis-data:
+  clickhouse-data:
+  minio-data:
+  shared-data:
+  registry-data:
