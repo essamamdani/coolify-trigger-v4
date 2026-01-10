@@ -214,6 +214,7 @@ services:
         mkdir -p /bitnami/clickhouse/etc/config.d
         cat > /bitnami/clickhouse/etc/config.d/override.xml << XMLEOF
         <clickhouse>
+            <listen_host>0.0.0.0</listen_host>
             <logger><level>warning</level></logger>
             <mark_cache_size>${CH_MARK_CACHE_SIZE:-1073741824}</mark_cache_size>
             <max_concurrent_queries>100</max_concurrent_queries>
@@ -237,7 +238,7 @@ services:
     volumes:
       - 'clickhouse-data:/bitnami/clickhouse'
     healthcheck:
-      test: ["CMD-SHELL", "clickhouse-client -q 'SELECT 1'"]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8123'"]
       interval: 5s
       timeout: 5s
       retries: 5
