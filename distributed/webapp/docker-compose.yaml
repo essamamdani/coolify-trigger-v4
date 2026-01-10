@@ -264,6 +264,12 @@ services:
     restart: unless-stopped
     ports:
       - "5000:5000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.registry.rule=Host(`${SERVICE_FQDN_REGISTRY}`)"
+      - "traefik.http.routers.registry.entrypoints=https"
+      - "traefik.http.routers.registry.tls=true"
+      - "traefik.http.services.registry.loadbalancer.server.port=5000"
     entrypoint: /bin/sh
     command:
       - -c
