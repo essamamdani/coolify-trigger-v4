@@ -1,6 +1,6 @@
 services:
   trigger:
-    image: 'ghcr.io/triggerdotdev/trigger.dev:main'
+    image: 'ghcr.io/triggerdotdev/trigger.dev:v4.3.0'
     restart: unless-stopped
     depends_on:
       postgres:

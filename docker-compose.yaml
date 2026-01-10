@@ -1,6 +1,6 @@
 services:
   trigger:
-    image: 'ghcr.io/triggerdotdev/trigger.dev:main'
+    image: 'ghcr.io/triggerdotdev/trigger.dev:v4.3.0'
     restart: unless-stopped
     depends_on:
       postgres:
@@ -213,7 +213,7 @@ services:
       start_period: 10s
 
   supervisor:
-    image: 'ghcr.io/triggerdotdev/supervisor:v4-beta'
+    image: 'ghcr.io/triggerdotdev/supervisor:v4.3.0'
     restart: unless-stopped
     depends_on:
       - docker-proxy
@@ -225,7 +225,7 @@ services:
       TRIGGER_DEQUEUE_MAX_CONSUMER_COUNT: 5
       TRIGGER_DEQUEUE_MAX_RUN_COUNT: 20
       TRIGGER_API_URL: http://trigger:3000
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://trigger:3000/otel
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://trigger:3000
       TRIGGER_WORKER_TOKEN: 'file:///home/node/shared/worker_token'
       MANAGED_WORKER_SECRET: ${SERVICE_PASSWORD_MANAGEDWORKER}
       TRIGGER_WORKLOAD_API_DOMAIN: supervisor

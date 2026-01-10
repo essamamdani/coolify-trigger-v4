@@ -5,7 +5,7 @@
 
 services:
   supervisor:
-    image: 'ghcr.io/triggerdotdev/supervisor:v4-beta'
+    image: 'ghcr.io/triggerdotdev/supervisor:v4.3.0'
     restart: unless-stopped
     depends_on:
       - docker-proxy
@@ -15,7 +15,7 @@ services:
     environment:
       # Connect to remote webapp (REQUIRED - set in .env)
       TRIGGER_API_URL: ${TRIGGER_API_URL}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${TRIGGER_API_URL}/otel
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${TRIGGER_API_URL}
 
       # Worker authentication (REQUIRED - get from webapp after first deploy)
       TRIGGER_WORKER_TOKEN: ${TRIGGER_WORKER_TOKEN}
