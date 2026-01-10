@@ -160,7 +160,7 @@ services:
     volumes:
       - 'clickhouse-data:/bitnami/clickhouse'
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--host", "localhost", "--port", "9000", "--user", "${CLICKHOUSE_ADMIN_USER:-default}", "--password", "${SERVICE_PASSWORD_64_CLICKHOUSE}", "--query", "SELECT 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:8123/ping"]
       interval: 5s
       timeout: 5s
       retries: 5
