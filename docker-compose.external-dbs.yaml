@@ -31,7 +31,7 @@ services:
       DEPLOY_REGISTRY_HOST: '${SERVICE_FQDN_REGISTRY}'
       DEPLOY_REGISTRY_NAMESPACE: '${REGISTRY_NAMESPACE:-trigger}'
       DEPLOY_REGISTRY_USERNAME: ${REGISTRY_USERNAME:-trigger}
-      DEPLOY_REGISTRY_PASSWORD: '${REGISTRY_PASSWORD:-very-secure-indeed}'
+      DEPLOY_REGISTRY_PASSWORD: '${SERVICE_PASSWORD_REGISTRY}'
       OBJECT_STORE_BASE_URL: 'http://minio:9000'
       OBJECT_STORE_ACCESS_KEY_ID: admin
       OBJECT_STORE_SECRET_ACCESS_KEY: '${SERVICE_PASSWORD_MINIO}'
@@ -79,12 +79,32 @@ services:
   clickhouse:
     image: 'bitnamilegacy/clickhouse:latest'
     restart: unless-stopped
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /bitnami/clickhouse/etc/config.d
+        cat > /bitnami/clickhouse/etc/config.d/override.xml << 'XMLEOF'
+        <clickhouse>
+            <logger><level>warning</level></logger>
+            <mark_cache_size>524288000</mark_cache_size>
+            <concurrent_threads_soft_limit_num>1</concurrent_threads_soft_limit_num>
+            <profiles>
+                <default>
+                <max_block_size>8192</max_block_size>
+                <max_download_threads>1</max_download_threads>
+                <input_format_parallel_parsing>0</input_format_parallel_parsing>
+                <output_format_parallel_formatting>0</output_format_parallel_formatting>
+                </default>
+            </profiles>
+        </clickhouse>
+        XMLEOF
+        exec /opt/bitnami/scripts/clickhouse/entrypoint.sh /opt/bitnami/scripts/clickhouse/run.sh
     environment:
       CLICKHOUSE_ADMIN_USER: ${CLICKHOUSE_ADMIN_USER:-default}
       CLICKHOUSE_ADMIN_PASSWORD: '${SERVICE_PASSWORD_64_CLICKHOUSE}'
     volumes:
       - 'clickhouse-data:/bitnami/clickhouse'
-      - './clickhouse/override.xml:/bitnami/clickhouse/etc/config.d/override.xml:ro'
     healthcheck:
       test: ["CMD", "clickhouse-client", "--host", "localhost", "--port", "9000", "--user", "${CLICKHOUSE_ADMIN_USER:-default}", "--password", "${SERVICE_PASSWORD_64_CLICKHOUSE}", "--query", "SELECT 1"]
       interval: 5s
@@ -95,9 +115,17 @@ services:
   registry:
     image: 'registry:2'
     restart: unless-stopped
-    volumes:
-      - './registry/auth.htpasswd:/auth/htpasswd:ro'
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        apk add --no-cache apache2-utils
+        mkdir -p /auth
+        htpasswd -Bbn "$${REGISTRY_USERNAME}" "$${REGISTRY_PASSWORD}" > /auth/htpasswd
+        exec /entrypoint.sh /etc/docker/registry/config.yml
     environment:
+      REGISTRY_USERNAME: ${REGISTRY_USERNAME:-trigger}
+      REGISTRY_PASSWORD: '${SERVICE_PASSWORD_REGISTRY}'
       REGISTRY_AUTH: htpasswd
       REGISTRY_AUTH_HTPASSWD_REALM: 'Registry Realm'
       REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
@@ -146,14 +174,14 @@ services:
       DOCKER_AUTOREMOVE_EXITED_CONTAINERS: 1
       DOCKER_REGISTRY_URL: ${SERVICE_URL_REGISTRY}
       DOCKER_REGISTRY_USERNAME: ${REGISTRY_USERNAME:-trigger}
-      DOCKER_REGISTRY_PASSWORD: '${REGISTRY_PASSWORD:-very-secure-indeed}'
+      DOCKER_REGISTRY_PASSWORD: '${SERVICE_PASSWORD_REGISTRY}'
       DEBUG: 1
       ENFORCE_MACHINE_PRESETS: 1
       TRIGGER_DEQUEUE_INTERVAL_MS: 1000
     volumes:
       - 'shared-data:/home/node/shared'
     healthcheck:
-      test: ["CMD", "node", "-e", "http.get('http://localhost:8020/health', res => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8020/health',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 5
