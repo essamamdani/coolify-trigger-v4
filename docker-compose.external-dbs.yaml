@@ -3,10 +3,14 @@ services:
     image: 'ghcr.io/triggerdotdev/trigger.dev:main'
     restart: unless-stopped
     depends_on:
-      - clickhouse
-      - electric
-      - minio
-      - registry
+      clickhouse:
+        condition: service_healthy
+      electric:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      registry:
+        condition: service_healthy
     user: root
     command: "sh -c \"chown -R node:node /home/node/shared && exec ./scripts/entrypoint.sh\"\n"
     environment:
