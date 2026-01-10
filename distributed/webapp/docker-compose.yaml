@@ -381,61 +381,61 @@ services:
         cat > /backup.sh << 'BACKUP_SCRIPT'
         #!/bin/sh
         set -e
-        TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-        BACKUP_FILE="redis_backup_${TIMESTAMP}.rdb"
+        TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+        BACKUP_FILE="redis_backup_$${TIMESTAMP}.rdb"
         LOCAL_BACKUP_DIR="/tmp/redis-backups"
-        mkdir -p "${LOCAL_BACKUP_DIR}"
-        echo "[$(date)] Starting Redis backup..."
+        mkdir -p "$${LOCAL_BACKUP_DIR}"
+        echo "[$$(date)] Starting Redis backup..."
         # Save initial LASTSAVE timestamp
-        INITIAL_LASTSAVE=$(redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" LASTSAVE)
+        INITIAL_LASTSAVE=$$(redis-cli -h "$${REDIS_HOST}" -p "$${REDIS_PORT}" LASTSAVE)
         # Trigger BGSAVE
-        redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" BGSAVE
-        echo "[$(date)] Waiting for BGSAVE to complete..."
+        redis-cli -h "$${REDIS_HOST}" -p "$${REDIS_PORT}" BGSAVE
+        echo "[$$(date)] Waiting for BGSAVE to complete..."
         # Wait for LASTSAVE to change (indicating BGSAVE completed)
-        while [ "$(redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" LASTSAVE)" = "$INITIAL_LASTSAVE" ]; do
+        while [ "$$(redis-cli -h "$${REDIS_HOST}" -p "$${REDIS_PORT}" LASTSAVE)" = "$$INITIAL_LASTSAVE" ]; do
           sleep 1
         done
         sleep 2
         # Copy and compress the RDB file
         if [ -f /data/dump.rdb ]; then
-          cp /data/dump.rdb "${LOCAL_BACKUP_DIR}/${BACKUP_FILE}"
-          gzip "${LOCAL_BACKUP_DIR}/${BACKUP_FILE}"
-          BACKUP_FILE="${BACKUP_FILE}.gz"
-          echo "[$(date)] Backup compressed: ${BACKUP_FILE}"
+          cp /data/dump.rdb "$${LOCAL_BACKUP_DIR}/$${BACKUP_FILE}"
+          gzip "$${LOCAL_BACKUP_DIR}/$${BACKUP_FILE}"
+          BACKUP_FILE="$${BACKUP_FILE}.gz"
+          echo "[$$(date)] Backup compressed: $${BACKUP_FILE}"
         else
-          echo "[$(date)] ERROR: dump.rdb not found"
+          echo "[$$(date)] ERROR: dump.rdb not found"
           exit 1
         fi
         # Configure AWS CLI
-        export AWS_ACCESS_KEY_ID="${S3_ACCESS_KEY_ID}"
-        export AWS_SECRET_ACCESS_KEY="${S3_SECRET_ACCESS_KEY}"
-        export AWS_DEFAULT_REGION="${S3_REGION:-us-east-1}"
+        export AWS_ACCESS_KEY_ID="$${S3_ACCESS_KEY_ID}"
+        export AWS_SECRET_ACCESS_KEY="$${S3_SECRET_ACCESS_KEY}"
+        export AWS_DEFAULT_REGION="$${S3_REGION:-us-east-1}"
         S3_ENDPOINT_URL=""
-        if [ -n "${S3_ENDPOINT:-}" ]; then
-          S3_ENDPOINT_URL="--endpoint-url ${S3_ENDPOINT}"
+        if [ -n "$${S3_ENDPOINT:-}" ]; then
+          S3_ENDPOINT_URL="--endpoint-url $${S3_ENDPOINT}"
         fi
         # Upload to S3
-        S3_PATH="s3://${S3_BUCKET}/${S3_PREFIX}/${BACKUP_FILE}"
-        echo "[$(date)] Uploading to ${S3_PATH}..."
-        aws s3 cp ${S3_ENDPOINT_URL} "${LOCAL_BACKUP_DIR}/${BACKUP_FILE}" "${S3_PATH}"
-        echo "[$(date)] Upload complete!"
+        S3_PATH="s3://$${S3_BUCKET}/$${S3_PREFIX}/$${BACKUP_FILE}"
+        echo "[$$(date)] Uploading to $${S3_PATH}..."
+        aws s3 cp $${S3_ENDPOINT_URL} "$${LOCAL_BACKUP_DIR}/$${BACKUP_FILE}" "$${S3_PATH}"
+        echo "[$$(date)] Upload complete!"
         # Clean up old backups
-        if [ -n "${BACKUP_KEEP_DAYS:-}" ] && [ "${BACKUP_KEEP_DAYS}" -gt 0 ]; then
-          echo "[$(date)] Cleaning up backups older than ${BACKUP_KEEP_DAYS} days..."
-          CUTOFF_DATE=$(date -d "-${BACKUP_KEEP_DAYS} days" +%Y%m%d 2>/dev/null || date -v-${BACKUP_KEEP_DAYS}d +%Y%m%d)
-          aws s3 ls ${S3_ENDPOINT_URL} "s3://${S3_BUCKET}/${S3_PREFIX}/" | while read -r line; do
-            FILE_NAME=$(echo "$line" | awk '{print $4}')
-            if [ -n "$FILE_NAME" ]; then
-              FILE_DATE=$(echo "$FILE_NAME" | sed -n 's/redis_backup_\([0-9]\{8\}\)_.*/\1/p')
-              if [ -n "$FILE_DATE" ] && [ "$FILE_DATE" -lt "$CUTOFF_DATE" ]; then
-                echo "[$(date)] Deleting old backup: ${FILE_NAME}"
-                aws s3 rm ${S3_ENDPOINT_URL} "s3://${S3_BUCKET}/${S3_PREFIX}/${FILE_NAME}"
+        if [ -n "$${BACKUP_KEEP_DAYS:-}" ] && [ "$${BACKUP_KEEP_DAYS}" -gt 0 ]; then
+          echo "[$$(date)] Cleaning up backups older than $${BACKUP_KEEP_DAYS} days..."
+          CUTOFF_DATE=$$(date -d "-$${BACKUP_KEEP_DAYS} days" +%Y%m%d 2>/dev/null || date -v-$${BACKUP_KEEP_DAYS}d +%Y%m%d)
+          aws s3 ls $${S3_ENDPOINT_URL} "s3://$${S3_BUCKET}/$${S3_PREFIX}/" | while read -r line; do
+            FILE_NAME=$$(echo "$$line" | awk '{print $$4}')
+            if [ -n "$$FILE_NAME" ]; then
+              FILE_DATE=$$(echo "$$FILE_NAME" | sed -n 's/redis_backup_\([0-9]\{8\}\)_.*/\1/p')
+              if [ -n "$$FILE_DATE" ] && [ "$$FILE_DATE" -lt "$$CUTOFF_DATE" ]; then
+                echo "[$$(date)] Deleting old backup: $${FILE_NAME}"
+                aws s3 rm $${S3_ENDPOINT_URL} "s3://$${S3_BUCKET}/$${S3_PREFIX}/$${FILE_NAME}"
               fi
             fi
           done
         fi
-        rm -f "${LOCAL_BACKUP_DIR}/${BACKUP_FILE}"
-        echo "[$(date)] Redis backup completed successfully!"
+        rm -f "$${LOCAL_BACKUP_DIR}/$${BACKUP_FILE}"
+        echo "[$$(date)] Redis backup completed successfully!"
         BACKUP_SCRIPT
         chmod +x /backup.sh
         printf '%s /backup.sh\n' "$${BACKUP_SCHEDULE}" > /etc/crontabs/root
