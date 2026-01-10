@@ -110,7 +110,7 @@ services:
     volumes:
       - 'clickhouse-data:/bitnami/clickhouse'
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8123/ping"]
+      test: ["CMD-SHELL", "clickhouse-client -q 'SELECT 1'"]
       interval: 5s
       timeout: 5s
       retries: 5
