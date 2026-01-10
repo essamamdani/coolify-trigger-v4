@@ -52,6 +52,11 @@ services:
       RUN_REPLICATION_LOG_LEVEL: info
       APP_LOG_LEVEL: info
       TRIGGER_TELEMETRY_DISABLED: 0
+      # Email configuration (optional)
+      WHITELISTED_EMAILS: '${WHITELISTED_EMAILS:-}'
+      EMAIL_TRANSPORT: '${EMAIL_TRANSPORT:-}'
+      FROM_EMAIL: '${FROM_EMAIL:-}'
+      RESEND_API_KEY: '${RESEND_API_KEY:-}'
     volumes:
       - 'shared-data:/home/node/shared'
     healthcheck:
