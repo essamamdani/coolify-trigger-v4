@@ -221,11 +221,14 @@ services:
     user: root
     command: "sh -c \"chown -R node:node /home/node/shared && exec /usr/bin/dumb-init -- pnpm run --filter supervisor start\"\n"
     environment:
-      DOCKER_ENFORCE_MACHINE_PRESETS: true
+      # Disable machine preset limits for faster task startup
+      DOCKER_ENFORCE_MACHINE_PRESETS: false
       # Dequeue settings - 250ms is Trigger.dev default for fast task startup
       TRIGGER_DEQUEUE_MAX_CONSUMER_COUNT: 5
       TRIGGER_DEQUEUE_MAX_RUN_COUNT: 10
       TRIGGER_DEQUEUE_INTERVAL_MS: 250
+      # Runner settings for faster task execution
+      RUNNER_SNAPSHOT_POLL_INTERVAL_SECONDS: 1
       TRIGGER_API_URL: http://trigger:3000
       OTEL_EXPORTER_OTLP_ENDPOINT: http://trigger:3000
       TRIGGER_WORKER_TOKEN: 'file:///home/node/shared/worker_token'
@@ -239,7 +242,8 @@ services:
       DOCKER_REGISTRY_USERNAME: ${REGISTRY_USERNAME:-trigger}
       DOCKER_REGISTRY_PASSWORD: '${SERVICE_PASSWORD_REGISTRY}'
       DEBUG: 1
-      ENFORCE_MACHINE_PRESETS: 1
+      # Machine presets enforcement (0 = disabled for faster startup)
+      ENFORCE_MACHINE_PRESETS: 0
     volumes:
       - 'shared-data:/home/node/shared'
     healthcheck:
