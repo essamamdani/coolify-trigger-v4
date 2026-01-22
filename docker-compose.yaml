@@ -183,6 +183,8 @@ services:
         htpasswd -Bbn "$${REGISTRY_USERNAME}" "$${REGISTRY_PASSWORD}" > /auth/htpasswd
         exec /entrypoint.sh /etc/docker/registry/config.yml
     environment:
+      # Coolify magic variable - exposes registry on port 5000 with auto-generated URL
+      SERVICE_FQDN_REGISTRY_5000: ''
       REGISTRY_USERNAME: ${REGISTRY_USERNAME:-trigger}
       REGISTRY_PASSWORD: '${SERVICE_PASSWORD_REGISTRY}'
       REGISTRY_AUTH: htpasswd
