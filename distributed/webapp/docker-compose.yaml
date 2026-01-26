@@ -29,10 +29,10 @@ services:
       WORKER_CONCURRENCY: 50
       MAXIMUM_DEV_QUEUE_SIZE: 30000
       MAXIMUM_DEPLOYED_QUEUE_SIZE: 150000
-      # Master queue polling optimization
-      MASTER_QUEUE_CONSUMERS_INTERVAL_MS: 250
-      MASTER_QUEUE_CONSUMER_DEQUEUE_COUNT: 20
-      PROCESS_WORKER_QUEUE_DEBOUNCE_MS: 100
+      # Master queue polling optimization (fast task acceptance for bulk submission)
+      MASTER_QUEUE_CONSUMERS_INTERVAL_MS: 100
+      MASTER_QUEUE_CONSUMER_DEQUEUE_COUNT: 50
+      PROCESS_WORKER_QUEUE_DEBOUNCE_MS: 50
       REMIX_APP_PORT: 3000
       # Using FQDN instead of SERVICE_URL (FQDN is just the domain, so we add https://)
       APP_ORIGIN: 'https://${SERVICE_FQDN_TRIGGER}'
@@ -133,6 +133,8 @@ services:
       - max_parallel_workers_per_gather=4
       - -c
       - max_worker_processes=8
+      - -c
+      - statement_timeout=30000
     environment:
       POSTGRES_USER: 'postgres'
       POSTGRES_PASSWORD: '${SERVICE_PASSWORD_POSTGRES}'
@@ -187,7 +189,10 @@ services:
       DATABASE_URL: 'postgresql://postgres:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-trigger}?schema=public&sslmode=disable'
       ELECTRIC_SECRET: '${SERVICE_PASSWORD_64_ELECTRIC}'
       ELECTRIC_USAGE_REPORTING: 'false'
-      ELECTRIC_DB_POOL_SIZE: 20
+      ELECTRIC_DB_POOL_SIZE: 150
+      # Cache settings to reduce DB pressure during high concurrency
+      ELECTRIC_CACHE_MAX_AGE: 10
+      ELECTRIC_CACHE_STALE_AGE: 120
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/v1/health"]
       interval: 10s

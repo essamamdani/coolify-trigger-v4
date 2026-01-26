@@ -39,19 +39,18 @@ services:
       DOCKER_REGISTRY_USERNAME: ${REGISTRY_USERNAME:-trigger}
       DOCKER_REGISTRY_PASSWORD: ${REGISTRY_PASSWORD}
 
-      # Scaling settings (adjust based on server capacity)
-      # Defaults match Trigger.dev recommendations for fast task startup
-      TRIGGER_DEQUEUE_MAX_CONSUMER_COUNT: ${DEQUEUE_CONSUMER_COUNT:-5}
-      TRIGGER_DEQUEUE_MAX_RUN_COUNT: ${DEQUEUE_RUN_COUNT:-10}
-      TRIGGER_DEQUEUE_INTERVAL_MS: ${DEQUEUE_INTERVAL_MS:-250}
+      # Scaling settings - optimized for fast task pickup during bulk submission
+      TRIGGER_DEQUEUE_MAX_CONSUMER_COUNT: ${DEQUEUE_CONSUMER_COUNT:-10}
+      TRIGGER_DEQUEUE_MAX_RUN_COUNT: ${DEQUEUE_RUN_COUNT:-20}
+      TRIGGER_DEQUEUE_INTERVAL_MS: ${DEQUEUE_INTERVAL_MS:-100}
       # Dequeue scaling for dynamic consumer adjustment
       TRIGGER_DEQUEUE_MIN_CONSUMER_COUNT: ${DEQUEUE_MIN_CONSUMER_COUNT:-2}
       TRIGGER_DEQUEUE_IDLE_INTERVAL_MS: ${DEQUEUE_IDLE_INTERVAL_MS:-500}
       TRIGGER_DEQUEUE_SCALING_STRATEGY: ${DEQUEUE_SCALING_STRATEGY:-aggressive}
       TRIGGER_DEQUEUE_SCALING_UP_COOLDOWN_MS: ${DEQUEUE_SCALING_UP_COOLDOWN_MS:-2000}
 
-      # Runner settings for faster task execution
-      RUNNER_SNAPSHOT_POLL_INTERVAL_SECONDS: ${RUNNER_SNAPSHOT_POLL_INTERVAL_SECONDS:-1}
+      # Runner settings (reduced polling for high concurrency)
+      RUNNER_SNAPSHOT_POLL_INTERVAL_SECONDS: ${RUNNER_SNAPSHOT_POLL_INTERVAL_SECONDS:-5}
 
       # Machine presets enforcement (0 = disabled for faster startup)
       ENFORCE_MACHINE_PRESETS: ${ENFORCE_MACHINE_PRESETS:-0}

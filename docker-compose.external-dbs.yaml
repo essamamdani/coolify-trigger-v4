@@ -28,10 +28,10 @@ services:
       # Queue sizes
       MAXIMUM_DEV_QUEUE_SIZE: 30000
       MAXIMUM_DEPLOYED_QUEUE_SIZE: 150000
-      # Queue polling optimization
-      MASTER_QUEUE_CONSUMERS_INTERVAL_MS: 250
-      MASTER_QUEUE_CONSUMER_DEQUEUE_COUNT: 20
-      PROCESS_WORKER_QUEUE_DEBOUNCE_MS: 100
+      # Queue polling optimization (fast task acceptance for bulk submission)
+      MASTER_QUEUE_CONSUMERS_INTERVAL_MS: 100
+      MASTER_QUEUE_CONSUMER_DEQUEUE_COUNT: 50
+      PROCESS_WORKER_QUEUE_DEBOUNCE_MS: 50
       REMIX_APP_PORT: 3000
       # Using FQDN instead of SERVICE_URL (FQDN is just the domain, so we add https://)
       APP_ORIGIN: 'https://${SERVICE_FQDN_TRIGGER}'
@@ -97,7 +97,10 @@ services:
       DATABASE_URL: '${DATABASE_URL}'
       ELECTRIC_SECRET: '${SERVICE_PASSWORD_64_ELECTRIC}'
       ELECTRIC_USAGE_REPORTING: 'false'
-      ELECTRIC_DB_POOL_SIZE: 20
+      ELECTRIC_DB_POOL_SIZE: 150
+      # Cache settings to reduce DB pressure during high concurrency
+      ELECTRIC_CACHE_MAX_AGE: 10
+      ELECTRIC_CACHE_STALE_AGE: 120
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/v1/health"]
       interval: 10s
@@ -179,10 +182,10 @@ services:
     user: root
     command: "sh -c \"chown -R node:node /home/node/shared && exec /usr/bin/dumb-init -- pnpm run --filter supervisor start\"\n"
     environment:
-      # Dequeue settings optimized for high throughput
-      TRIGGER_DEQUEUE_MAX_CONSUMER_COUNT: 5
-      TRIGGER_DEQUEUE_MAX_RUN_COUNT: 10
-      TRIGGER_DEQUEUE_INTERVAL_MS: 250
+      # Dequeue settings - optimized for fast task pickup during bulk submission
+      TRIGGER_DEQUEUE_MAX_CONSUMER_COUNT: 10
+      TRIGGER_DEQUEUE_MAX_RUN_COUNT: 20
+      TRIGGER_DEQUEUE_INTERVAL_MS: 100
       TRIGGER_DEQUEUE_IDLE_INTERVAL_MS: 500
       TRIGGER_DEQUEUE_MIN_CONSUMER_COUNT: 2
       TRIGGER_DEQUEUE_SCALING_STRATEGY: aggressive
@@ -190,8 +193,8 @@ services:
       # Disable machine preset limits for faster task startup
       DOCKER_ENFORCE_MACHINE_PRESETS: false
       ENFORCE_MACHINE_PRESETS: 0
-      # Runner settings for faster task execution
-      RUNNER_SNAPSHOT_POLL_INTERVAL_SECONDS: 1
+      # Runner settings (reduced polling for high concurrency)
+      RUNNER_SNAPSHOT_POLL_INTERVAL_SECONDS: 5
       TRIGGER_API_URL: http://trigger:3000
       OTEL_EXPORTER_OTLP_ENDPOINT: http://trigger:3000
       TRIGGER_WORKER_TOKEN: 'file:///home/node/shared/worker_token'
