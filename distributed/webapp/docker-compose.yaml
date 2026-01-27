@@ -23,7 +23,7 @@ services:
       SERVICE_FQDN_TRIGGER_3000: ''
       # Clustering - enable multi-process mode for heavy worker polling
       ENABLE_CLUSTER: 1
-      WEB_CONCURRENCY: 4
+      WEB_CONCURRENCY: 6
       # Run Engine - Scaled for heavy worker polling (8 vCPU / 32GB RAM)
       RUN_ENGINE_WORKER_COUNT: 25
       RUN_ENGINE_TASKS_PER_WORKER: 40
