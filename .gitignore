@@ -1,2 +1,5 @@
 # Logs
 logs/
+
+# Monitoring env (contains server IPs and container names)
+.env.monitor

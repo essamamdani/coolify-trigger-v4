@@ -6,22 +6,24 @@ This repository contains Docker Compose configurations for self-hosting Trigger.
 
 | Option | Use Case | Location |
 |--------|----------|----------|
-| **Single Server** | Small to medium workloads, simple setup | `docker-compose.yaml` (root) |
-| **Distributed Workers** | High concurrency (1000+), horizontal scaling | [`distributed/`](./distributed/) folder |
+| **Distributed (Recommended)** | Production workloads, horizontal scaling | [`distributed/`](./distributed/) folder |
+| **Single Server** | Development, testing, or low-traffic workloads | `docker-compose.yaml` (root) |
 | **External Databases** | Use Coolify's managed databases | `docker-compose.external-dbs.yaml` |
 
-### Need High Concurrency?
+### Recommended: Distributed Setup
 
-For workloads requiring 1000+ concurrent tasks, use the **distributed setup** in the [`distributed/`](./distributed/) folder. This allows you to:
+The **distributed setup** in [`distributed/`](./distributed/) is the recommended approach for all production deployments. It separates the webapp (with databases) from workers, giving you:
 
-- Run workers on multiple servers
-- Scale horizontally as needed
-- Keep all workers managed by a single webapp
-- **Production-ready**: Security hardening, resource limits, log rotation
+- **Horizontal scaling**: Add worker servers as your workload grows
+- **Independent scaling**: Scale workers without affecting the webapp or databases
+- **Better reliability**: Worker crashes don't impact the webapp or other workers
+- **Production-ready**: Security hardening, resource limits, log rotation, batch queue tuning
 - **NVMe optimized**: Tuned for Hetzner Cloud servers with NVMe storage
 - **4 server tiers**: Pre-configured for 4/8/16/32 vCPU servers
 
 See [`distributed/README.md`](./distributed/README.md) for detailed setup instructions.
+
+> The single-server setup (`docker-compose.yaml`) is suitable for development and testing but runs all services on one machine, which limits scalability and fault isolation.
 
 ## Quick Start with Coolify v4
 
@@ -113,7 +115,7 @@ Coolify automatically generates all required `SERVICE_*` environment variables. 
 
 - `POSTGRES_DB`: PostgreSQL database name (default: trigger)
 - `REGISTRY_NAMESPACE`: Docker registry namespace (default: trigger)
-- `NODE_MAX_OLD_SPACE_SIZE`: Node.js memory limit in MB (default: 1024)
+- `NODE_MAX_OLD_SPACE_SIZE`: Node.js memory limit in MB (default: 16384)
 - `TRIGGER_TELEMETRY_DISABLED`: Disable telemetry (default: 0)
 - `INTERNAL_OTEL_TRACE_LOGGING_ENABLED`: Enable internal tracing logs (default: 0)
 
